@@ -1,0 +1,26 @@
+{
+  "title": "Circle Area",
+  "statement": "Read the radius r of a circle and print its area. Answers within 0.0001 are accepted.",
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 128,
+  "checker": "float",
+  "float_tolerance": 0.0001,
+  "groups": [
+    {
+      "name": "samples",
+      "score": 0,
+      "cases": [
+        {"input": "1\n", "output": "3.14159265\n", "is_sample": true}
+      ]
+    },
+    {
+      "name": "main",
+      "score": 100,
+      "cases": [
+        {"input": "2.5\n", "output": "19.63495408\n"},
+        {"input": "0\n", "output": "0\n"},
+        {"input": "100\n", "output": "31415.92653590\n"}
+      ]
+    }
+  ]
+}

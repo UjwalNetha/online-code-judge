@@ -1,0 +1,110 @@
+x-worker-security: &worker-security
+  user: "1000:1000"
+  init: true
+  read_only: true
+  cap_drop:
+    - ALL
+  # the worker creates its own namespaces and adds its own seccomp filter to
+  # each submission, and Docker's default profile would block those calls
+  security_opt:
+    - no-new-privileges:true
+    - seccomp=unconfined
+    - apparmor=unconfined
+  tmpfs:
+    - /tmp:size=1g,mode=1777,exec
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: judge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+      POSTGRES_DB: judge
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks:
+      - backend
+
+  api:
+    build: .
+    command: uvicorn judge.api.app:app --host 0.0.0.0 --port 8000
+    environment: &app-env
+      DATABASE_URL: postgresql+psycopg2://judge:${POSTGRES_PASSWORD}@db:5432/judge
+      JWT_SECRET: ${JWT_SECRET:?set it in .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+      - public
+
+  worker:
+    build: .
+    command: python -m judge.worker
+    <<: *worker-security
+    environment:
+      <<: *app-env
+      MAX_SANDBOXES: "2"
+    mem_limit: 2g
+    pids_limit: 512
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    deploy:
+      replicas: 2
+    networks:
+      - backend
+
+  test-db:
+    image: postgres:16-alpine
+    profiles:
+      - test
+    environment:
+      POSTGRES_USER: judge
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: judge_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge -d judge_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks:
+      - backend
+
+  tests:
+    build: .
+    command: pytest -q
+    profiles:
+      - test
+    <<: *worker-security
+    environment:
+      DATABASE_URL: postgresql+psycopg2://judge:test@test-db:5432/judge_test
+      JWT_SECRET: test-secret-only-used-by-the-test-suite
+    mem_limit: 2g
+    pids_limit: 512
+    depends_on:
+      test-db:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  db-data:
+
+networks:
+  backend:
+    internal: true
+  public:

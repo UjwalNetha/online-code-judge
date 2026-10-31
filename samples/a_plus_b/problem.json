@@ -1,0 +1,26 @@
+{
+  "title": "A Plus B",
+  "statement": "Read two integers a and b from one line and print their sum.",
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 128,
+  "checker": "token",
+  "groups": [
+    {
+      "name": "samples",
+      "score": 0,
+      "cases": [
+        {"input": "1 2\n", "output": "3\n", "is_sample": true},
+        {"input": "10 -4\n", "output": "6\n", "is_sample": true}
+      ]
+    },
+    {
+      "name": "main",
+      "score": 100,
+      "cases": [
+        {"input": "0 0\n", "output": "0\n"},
+        {"input": "-5 -7\n", "output": "-12\n"},
+        {"input": "1000000000 1000000000\n", "output": "2000000000\n"}
+      ]
+    }
+  ]
+}
